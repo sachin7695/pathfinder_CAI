@@ -1,2 +1,11 @@
 **__pycache__**
 env
+package.json
+package-lock.json
+requirements.txt
+transcript.txt 
+twilio
+node_modules 
+client.py 
+connect.js
+plugin_styletts.py

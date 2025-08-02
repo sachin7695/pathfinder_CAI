@@ -168,7 +168,7 @@ def main(parser: Optional[argparse.ArgumentParser] = None):
         "--host", default="localhost", help="Host for HTTP server (default: 0.0.0.0)"
     )
     parser.add_argument(
-        "--port", type=int, default=6079, help="Port for HTTP server (default: 6078)"
+        "--port", type=int, default=6010, help="Port for HTTP server (default: 6078)"
     )
     parser.add_argument("--verbose", "-v", action="count", default=0)
     args = parser.parse_args()

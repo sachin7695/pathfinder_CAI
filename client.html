@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveKit Private Room Test Client</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .sdk-status {
+            background: #fff3e0;
+            border: 2px solid #ff9800;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .sdk-status.error {
+            display: block;
+            background: #ffebee;
+            border-color: #f44336;
+        }
+        
+        .sdk-status.success {
+            display: block;
+            background: #e8f5e9;
+            border-color: #4caf50;
+        }
+        
+        .sdk-status h3 {
+            color: #d32f2f;
+            margin-bottom: 10px;
+        }
+        
+        .sdk-status.success h3 {
+            color: #2e7d32;
+        }
+        
+        .config-section {
+            background: #f0f7ff;
+            border: 2px solid #2196F3;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .config-title {
+            color: #1976d2;
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            background: #fafafa;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+            background: white;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #45a049;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background: #da190b;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #90caf9;
+        }
+        
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #81c784;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef5350;
+        }
+        
+        .audio-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .audio-container h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .participant {
+            padding: 12px;
+            margin: 8px 0;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .participant:hover {
+            border-color: #4CAF50;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .participant-name {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .participant-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+        }
+        
+        .connection-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-top: 5px;
+        }
+        
+        .audio-playback-warning {
+            background: #fff3e0;
+            border: 2px solid #ff9800;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            display: none;
+            text-align: center;
+        }
+        
+        .audio-playback-warning button {
+            margin-top: 10px;
+            background: #ff9800;
+            color: white;
+        }
+        
+        .audio-playback-warning button:hover {
+            background: #f57c00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ LiveKit Private Room Test Client</h1>
+        
+        <div id="sdkStatus" class="sdk-status">
+            <h3>SDK Loading Status</h3>
+            <p id="sdkMessage"></p>
+        </div>
+        
+        <div class="config-section">
+            <div class="config-title">🔧 Connection Configuration</div>
+            
+            <div class="form-group">
+                <label for="serverUrl">LiveKit Server URL:</label>
+                <input 
+                    type="text" 
+                    id="serverUrl" 
+                    placeholder="wss://your-server.livekit.cloud or ws://your-server-ip:7880"
+                    value=""
+                />
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    Examples: wss://abc123.livekit.cloud or ws://192.168.1.100:7880
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <label for="roomName">Room Name:</label>
+                <input 
+                    type="text" 
+                    id="roomName" 
+                    placeholder="my_private_sales_room_2024"
+                    value="my_private_sales_room_2024"
+                    readonly
+                    style="background: #f0f0f0;"
+                />
+            </div>
+            
+            <div class="form-group">
+                <label for="token">JWT Token:</label>
+                <textarea 
+                    id="token" 
+                    placeholder="Paste your JWT token here..."
+                ></textarea>
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    The long token string that starts with "eyJ..."
+                </small>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button id="connectBtn" class="btn-primary" onclick="connectToRoom()" disabled>
+                🚀 Connect to Room
+            </button>
+            <button id="disconnectBtn" class="btn-secondary" onclick="disconnectFromRoom()" disabled>
+                ⏹️ Disconnect
+            </button>
+        </div>
+        
+        <div id="status" class="status info">Initializing LiveKit SDK...</div>
+        
+        <div id="audioPlaybackWarning" class="audio-playback-warning">
+            <p>🔊 Audio playback requires user interaction</p>
+            <button onclick="startAudioPlayback()">Enable Audio</button>
+        </div>
+        
+        <div id="connectionInfo" class="connection-info" style="display: none;">
+            <div class="info-item">
+                <div class="info-label">Status</div>
+                <div class="info-value" id="connectionStatus">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Room</div>
+                <div class="info-value" id="roomInfo">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Your Identity</div>
+                <div class="info-value" id="identityInfo">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Participants</div>
+                <div class="info-value" id="participantCount">0</div>
+            </div>
+        </div>
+        
+        <div id="audioContainer" class="audio-container">
+            <h3>👥 Room Participants</h3>
+            <div id="participants"></div>
+        </div>
+    </div>
+
+    <!-- Load LiveKit SDK from CDN (UMD version) -->
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+    
+    <script>
+        let room = null;
+        let audioTrack = null;
+        
+        // Check if SDK loaded properly
+        window.addEventListener('load', () => {
+            const statusDiv = document.getElementById('sdkStatus');
+            const messageDiv = document.getElementById('sdkMessage');
+            
+            if (typeof LivekitClient !== 'undefined') {
+                statusDiv.className = 'sdk-status success';
+                messageDiv.textContent = '✅ LiveKit SDK loaded successfully (UMD version)';
+                log('✅ LiveKit SDK loaded successfully', 'success');
+                log('📝 Enter your server URL and token to connect', 'info');
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('serverUrl').focus();
+            } else {
+                statusDiv.className = 'sdk-status error';
+                messageDiv.innerHTML = `
+                    ❌ Failed to load LiveKit SDK<br><br>
+                    <strong>Solutions:</strong><br>
+                    1. Check your internet connection<br>
+                    2. Try refreshing the page<br>
+                    3. Download the SDK manually from:<br>
+                    <a href="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js" target="_blank">Download LiveKit SDK</a>
+                `;
+                log('❌ Failed to load LiveKit SDK', 'error');
+            }
+        });
+        
+        function log(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            
+            // Keep last 20 log entries
+            const currentLogs = statusDiv.textContent.split('\n').filter(line => line.trim());
+            currentLogs.push(logEntry);
+            if (currentLogs.length > 20) {
+                currentLogs.shift();
+            }
+            
+            statusDiv.textContent = currentLogs.join('\n');
+            statusDiv.className = `status ${type}`;
+            statusDiv.scrollTop = statusDiv.scrollHeight;
+        }
+        
+        async function connectToRoom() {
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            const token = document.getElementById('token').value.trim();
+            const roomName = document.getElementById('roomName').value.trim();
+            
+            if (!serverUrl) {
+                log('❌ Please enter the LiveKit server URL', 'error');
+                return;
+            }
+            
+            if (!token) {
+                log('❌ Please enter your JWT token', 'error');
+                return;
+            }
+            
+            try {
+                log('🔄 Checking LiveKit SDK...', 'info');
+                
+                if (typeof LivekitClient === 'undefined') {
+                    throw new Error('LiveKit SDK not loaded. Please refresh the page.');
+                }
+                
+                log('✅ LiveKit SDK ready', 'success');
+                log(`🔄 Connecting to ${serverUrl}...`, 'info');
+                
+                // Create room instance using the global LivekitClient namespace
+                room = new LivekitClient.Room({
+                    // Automatically manage subscribed video quality
+                    adaptiveStream: true,
+                    
+                    // Optimize publishing bandwidth and CPU
+                    dynacast: true,
+                    
+                    // Default capture settings
+                    videoCaptureDefaults: {
+                        resolution: LivekitClient.VideoPresets.h720.resolution
+                    },
+                    
+                    // Enable DTX (Discontinuous Transmission) for audio
+                    publishDefaults: {
+                        dtx: true,
+                        red: true,
+                        screenShareSimulcastLayers: []
+                    }
+                });
+                
+                // Pre-warm connection (optional optimization)
+                room.prepareConnection(serverUrl, token);
+                
+                // Set up event handlers
+                room
+                    .on(LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed)
+                    .on(LivekitClient.RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed)
+                    .on(LivekitClient.RoomEvent.ActiveSpeakersChanged, handleActiveSpeakerChange)
+                    .on(LivekitClient.RoomEvent.Disconnected, handleDisconnect)
+                    .on(LivekitClient.RoomEvent.LocalTrackUnpublished, handleLocalTrackUnpublished)
+                    .on(LivekitClient.RoomEvent.ParticipantConnected, handleParticipantConnected)
+                    .on(LivekitClient.RoomEvent.ParticipantDisconnected, handleParticipantDisconnected)
+                    .on(LivekitClient.RoomEvent.ConnectionStateChanged, handleConnectionStateChanged)
+                    .on(LivekitClient.RoomEvent.AudioPlaybackStatusChanged, handleAudioPlaybackStatusChanged)
+                    .on(LivekitClient.RoomEvent.MediaDevicesError, handleMediaDevicesError);
+                
+                // Connect to room
+                await room.connect(serverUrl, token, {
+                    autoSubscribe: true
+                });
+                
+                // Check if still connected after await
+                if (room.state !== LivekitClient.ConnectionState.Connected) {
+                    throw new Error('Connection failed - room disconnected immediately');
+                }
+                
+                log(`✅ Connected to room: ${room.name}`, 'success');
+                log(`👤 Your identity: ${room.localParticipant.identity}`, 'success');
+                log(`🆔 Your SID: ${room.localParticipant.sid}`, 'info');
+                
+                // Update UI
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = false;
+                document.getElementById('audioContainer').style.display = 'block';
+                document.getElementById('connectionInfo').style.display = 'grid';
+                
+                updateConnectionInfo();
+                updateParticipants();
+                
+                // Enable microphone after a short delay
+                setTimeout(async () => {
+                    try {
+                        log('🎤 Enabling microphone...', 'info');
+                        await room.localParticipant.setMicrophoneEnabled(true);
+                        log('✅ Microphone enabled', 'success');
+                        updateParticipants();
+                    } catch (error) {
+                        log(`⚠️ Microphone error: ${error.message}`, 'error');
+                        
+                        // Check specific failure reason
+                        const failure = LivekitClient.MediaDeviceFailure.getFailure(error);
+                        switch (failure) {
+                            case LivekitClient.MediaDeviceFailure.PermissionDenied:
+                                log('🚫 Microphone permission denied', 'error');
+                                break;
+                            case LivekitClient.MediaDeviceFailure.NotFound:
+                                log('🔍 No microphone found', 'error');
+                                break;
+                            case LivekitClient.MediaDeviceFailure.DeviceInUse:
+                                log('🔒 Microphone is in use by another application', 'error');
+                                break;
+                        }
+                        
+                        log('💡 You can still hear others without a microphone', 'info');
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                log(`❌ Connection failed: ${error.message}`, 'error');
+                console.error('Full error details:', error);
+                
+                // Provide helpful error messages
+                if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                    log('🔑 Token error - check if token is valid and not expired', 'error');
+                    log('💡 Generate a fresh token and try again', 'info');
+                } else if (error.message.includes('404') || error.message.includes('Not Found')) {
+                    log('🚫 Room not found - verify room name in token matches server', 'error');
+                } else if (error.message.includes('disconnected immediately')) {
+                    log('⚠️ Connection was immediately terminated by server', 'error');
+                    log('💡 Check: Token validity, room exists, server is running', 'info');
+                } else if (error.message.includes('network')) {
+                    log('🌐 Network error - check server URL and firewall settings', 'error');
+                } else if (error.message.includes('size')) {
+                    log('⚠️ Room state error - connection was lost during setup', 'error');
+                }
+                
+                resetUI();
+            }
+        }
+        
+        function handleTrackSubscribed(track, publication, participant) {
+            log(`🎵 Subscribed to ${track.kind} from ${participant.identity}`, 'success');
+            
+            if (track.kind === LivekitClient.Track.Kind.Audio) {
+                // Attach audio track
+                const audioElement = track.attach();
+                audioElement.id = `audio-${participant.sid}`;
+                document.body.appendChild(audioElement);
+            }
+            
+            updateParticipants();
+        }
+        
+        function handleTrackUnsubscribed(track, publication, participant) {
+            log(`🔇 Unsubscribed from ${track.kind} from ${participant.identity}`, 'info');
+            track.detach();
+            updateParticipants();
+        }
+        
+        function handleLocalTrackUnpublished(publication, participant) {
+            publication.track?.detach();
+            updateParticipants();
+        }
+        
+        function handleActiveSpeakerChange(speakers) {
+            // You can update UI to show who's speaking
+            if (speakers.length > 0) {
+                const names = speakers.map(s => s.identity).join(', ');
+                log(`🗣️ Active speakers: ${names}`, 'info');
+            }
+        }
+        
+        function handleDisconnect(reason) {
+            log(`❌ Disconnected: ${reason || 'Connection lost'}`, 'error');
+            resetUI();
+        }
+        
+        function handleParticipantConnected(participant) {
+            log(`✅ ${participant.identity} joined the room`, 'success');
+            updateParticipants();
+            updateConnectionInfo();
+        }
+        
+        function handleParticipantDisconnected(participant) {
+            log(`👋 ${participant.identity} left the room`, 'info');
+            updateParticipants();
+            updateConnectionInfo();
+        }
+        
+        function handleConnectionStateChanged(state) {
+            log(`📡 Connection state: ${state}`, 'info');
+            updateConnectionInfo();
+        }
+        
+        function handleAudioPlaybackStatusChanged() {
+            if (!room.canPlaybackAudio) {
+                document.getElementById('audioPlaybackWarning').style.display = 'block';
+                log('⚠️ Audio playback requires user interaction', 'info');
+            } else {
+                document.getElementById('audioPlaybackWarning').style.display = 'none';
+            }
+        }
+        
+        function handleMediaDevicesError(error) {
+            log(`🎤 Media device error: ${error.message}`, 'error');
+        }
+        
+        async function startAudioPlayback() {
+            try {
+                await room.startAudio();
+                document.getElementById('audioPlaybackWarning').style.display = 'none';
+                log('✅ Audio playback enabled', 'success');
+            } catch (error) {
+                log(`❌ Failed to start audio: ${error.message}`, 'error');
+            }
+        }
+        
+        async function disconnectFromRoom() {
+            if (room) {
+                log('🔄 Disconnecting from room...', 'info');
+                
+                // Disable mic before disconnecting
+                try {
+                    await room.localParticipant.setMicrophoneEnabled(false);
+                } catch (e) {
+                    // Ignore errors during cleanup
+                }
+                
+                room.disconnect();
+                room = null;
+                
+                log('✅ Disconnected successfully', 'success');
+            }
+            
+            resetUI();
+        }
+        
+        function resetUI() {
+            document.getElementById('connectBtn').disabled = false;
+            document.getElementById('disconnectBtn').disabled = true;
+            document.getElementById('audioContainer').style.display = 'none';
+            document.getElementById('connectionInfo').style.display = 'none';
+            document.getElementById('audioPlaybackWarning').style.display = 'none';
+            document.getElementById('participants').innerHTML = '';
+            
+            // Remove all audio elements
+            const audioElements = document.querySelectorAll('audio');
+            audioElements.forEach(el => el.remove());
+            
+            updateConnectionInfo();
+        }
+        
+        function updateConnectionInfo() {
+            if (room && room.state === LivekitClient.ConnectionState.Connected && room.participants) {
+                document.getElementById('connectionStatus').textContent = '🟢 Connected';
+                document.getElementById('roomInfo').textContent = room.name || 'Unknown';
+                document.getElementById('identityInfo').textContent = room.localParticipant?.identity || 'Unknown';
+                document.getElementById('participantCount').textContent = (room.participants?.size || 0) + 1; // +1 for self
+            } else {
+                document.getElementById('connectionStatus').textContent = '🔴 Disconnected';
+                document.getElementById('roomInfo').textContent = '-';
+                document.getElementById('identityInfo').textContent = '-';
+                document.getElementById('participantCount').textContent = '0';
+            }
+        }
+        
+        function updateParticipants() {
+            if (!room || room.state !== LivekitClient.ConnectionState.Connected) return;
+            
+            const participantsDiv = document.getElementById('participants');
+            participantsDiv.innerHTML = '';
+            
+            // Add local participant
+            if (room.localParticipant) {
+                const localDiv = document.createElement('div');
+                localDiv.className = 'participant';
+                
+                const localName = document.createElement('span');
+                localName.className = 'participant-name';
+                localName.textContent = `You (${room.localParticipant.identity})`;
+                
+                const localStatus = document.createElement('span');
+                localStatus.className = 'participant-status';
+                
+                // Check if mic is enabled
+                const isMicEnabled = room.localParticipant.isMicrophoneEnabled;
+                localStatus.innerHTML = isMicEnabled
+                    ? '🎤 <span style="color: #4CAF50;">Microphone Active</span>' 
+                    : '🔇 <span style="color: #999;">Microphone Off</span>';
+                
+                localDiv.appendChild(localName);
+                localDiv.appendChild(localStatus);
+                participantsDiv.appendChild(localDiv);
+            }
+            
+            // Add remote participants
+            if (room.participants) {
+                room.participants.forEach(participant => {
+                    const participantDiv = document.createElement('div');
+                    participantDiv.className = 'participant';
+                    
+                    const name = document.createElement('span');
+                    name.className = 'participant-name';
+                    name.textContent = participant.identity;
+                    
+                    const status = document.createElement('span');
+                    status.className = 'participant-status';
+                    
+                    // Check if participant has audio
+                    const hasAudio = Array.from(participant.tracks.values()).some(
+                        pub => pub.kind === LivekitClient.Track.Kind.Audio && pub.isSubscribed
+                    );
+                    
+                    status.innerHTML = hasAudio
+                        ? '🔊 <span style="color: #4CAF50;">Audio Active</span>' 
+                        : '🔇 <span style="color: #999;">No Audio</span>';
+                    
+                    participantDiv.appendChild(name);
+                    participantDiv.appendChild(status);
+                    participantsDiv.appendChild(participantDiv);
+                });
+                
+                if (room.participants.size === 0) {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'participant';
+                    emptyDiv.style.justifyContent = 'center';
+                    emptyDiv.style.color = '#999';
+                    emptyDiv.innerHTML = '<em>Waiting for the bot to join...</em>';
+                    participantsDiv.appendChild(emptyDiv);
+                }
+            }
+        }
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (room) {
+                room.disconnect();
+            }
+        });
+        
+        // Add Enter key support for token field
+        document.getElementById('token').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                connectToRoom();
+            }
+        });
+    </script>
+</body>
+</html>

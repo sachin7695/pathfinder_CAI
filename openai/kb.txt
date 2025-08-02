@@ -1,0 +1,199 @@
+"""
+Uminber Designs – Internal Knowledge Base
+Last updated: 27 July 2025
+
+1. Company Snapshot
+Legal name: Uminber Designs (sole-proprietorship)
+
+Founded: 2021
+
+Headquarters: Ahmedabad, Gujarat, India
+
+Size: 2 – 10 full-time employees + vetted freelance pool
+
+Ownership: Founder-led, bootstrapped
+
+Business model: Project work, monthly retainers, and product sales (EV kits)
+
+Target customers:
+
+Indian micro, small & early-stage businesses that lack in-house design/tech talent
+
+Global hardware/software start-ups seeking cost-efficient outsourcing
+
+2. Mission, Vision & Values
+Statement
+Mission	Empower innovators with affordable, end-to-end design, engineering & digital solutions so they can launch products faster.
+Vision	Become India’s go-to studio where software, hardware and brand come together under one roof.
+Core Values	Customer-first - Agility - Transparency - Continuous learning - Sustainability
+3. Service Portfolio
+Category	In-Scope Capabilities	Typical Deliverables
+Web & Mobile Development	React, Next.js, Flutter, Node, PHP/Laravel, WordPress	Marketing sites - e-commerce - MVP web/apps
+UI/UX & Graphic Design	Wireframing, prototyping, visual identity, illustration	Brand kits - dashboards - social media creatives
+Branding & Digital Marketing	Brand strategy, SEO, SEM, SMM, email, content	Logo + style guide - ad campaigns - blogs
+CAD/CAM & Product Engineering	SolidWorks, Fusion 360, Ansys simulation	3-D CAD, GD&T drawings, FEA reports
+Additive Manufacturing	FDM, SLA & SLS printing partners, post-processing	Rapid prototypes - functional test rigs
+AI & IoT Solutions	Edge device firmware, Python ML, voice agents	Proof-of-concept IoT dashboards - chat/voice bots
+EV Retro-fit Kits	Homologated 48 V & 60 V kits for petrol two-wheelers	Motor + controller + battery pack + install manual
+4. Engagement Models
+Fixed-scope projects – one-time pricing with clear milestones.
+
+Agile sprint blocks – prepaid 2-week design/dev cycles, ideal for evolving specs.
+
+Unlimited Design Subscription – ₹34,999 / month; unlimited graphic & web design requests, 24- to 48-hour turnaround per task.
+
+Retained Product Partnership – hybrid hardware-software road-map with quarterly OKRs.
+
+EV Kit B2B Dealer Program – tiered discounts (10-20%) on volume ≥10 kits.
+
+5. Indicative Pricing (FY 25)
+Landing-page package (design + dev): ₹24,999
+
+Website + branding starter pack: ₹34,999
+
+Mobile-app MVP (Flutter, ≤5 screens): ₹1.8 L–₹2.5 L
+
+CAD modelling: ₹1,200 / hour or ₹19,999 per standard assembly
+
+EV retrofit kit (48 V, 2 kWh): ₹45,000 ex-factory; installation extra
+
+Prices are guidelines; GST 18% additional.
+
+6. Competitive Advantages
+Multidisciplinary scope: software, industrial design & marketing in-house → single vendor, faster hand-offs.
+
+Cost efficiency: Ahmedabad operating costs ~25% lower than metros; savings passed to clients.
+
+Rapid prototyping pipeline: CAD → 3-D print → user test in ≤7 days.
+
+Founder access: clients interact directly with lead engineer/designer.
+
+Localisation expertise: Hindi, Gujarati & English content options for Indian SMEs.
+
+7. Technology Stack & Tools
+Design: Figma, Adobe CC, Blender, SolidWorks, Fusion 360
+
+Web/App: React, Next.js, Tailwind, Flutter, Node.js, PHP/Laravel, WordPress
+
+DevOps: Docker, AWS Lightsail, DigitalOcean, GitHub Actions
+
+Data/AI: Python, TensorFlow, Hugging Face, LangChain
+
+Marketing: SEMrush, Ahrefs, Meta Ads, Google Tag Manager
+
+Collaboration: Notion, Slack, ClickUp, Miro
+
+8. Industries & Use-Case Examples
+Consumer electronics: smart-speaker enclosure design & firmware UI
+
+D2C e-commerce: Shopify store + product CGI renders
+
+Healthcare devices: casing & FEA for portable ECG prototype
+
+Ed-tech: multilingual learning app MVP + brand kit
+
+Automotive aftermarket: two-wheeler EV conversion beta program
+
+9. Project Workflow (Software / Digital)
+Discovery call & requirement doc
+
+Proposal + timeline sign-off
+
+Wireframes / concept art
+
+Weekly sprint reviews (demo server)
+
+QA & UAT
+
+Launch & 30-day hyper-care
+
+Optional marketing & analytics retainer
+
+Hardware / CAD
+Problem statement & reference measurements
+
+Concept sketches → CAD model v1
+
+FEA / CFD validation
+
+Prototype 3-D print
+
+Design freeze & manufacturing drawings
+
+Handoff or production liaison
+
+10. EV Retrofit Kit Specs (Flagship 60 V Model)
+Motor: 2 kW BLDC hub (IP 67)
+
+Battery: 60 V – 35 Ah Li-ion (NMC), 3-year warranty
+
+Controller: FOC, regenerative braking, CAN bus
+
+Range: 80 km urban cycle (@40 km/h)
+
+Top speed: 65 km/h
+
+Charging: 0 → 80% in 3 h (10 A charger)
+
+Certifications: AIS-123 Part 3 compliant, ARAI approved
+
+11. Success Metrics & KPIs
+Average project turnaround: 21 days
+
+Repeat-business ratio: 62% (FY 24)
+
+NPS (client survey Q4 FY 24): +46
+
+Website organic traffic YoY growth: +38%
+
+12. Client Testimonials (Paraphrased)
+“Their one-team approach cut our product launch timeline in half.” — Ahmedabad IoT start-up, 2023
+
+“We got agency-grade branding without Delhi/Mumbai prices.” — Jaipur D2C founder, 2024
+
+13. Frequently Asked Questions (FAQ)
+Q1. Do you work with overseas clients?
+Yes, ~40% of revenue comes from US, EU & MENA start-ups. We overlap 3–4 hours daily for stand-ups.
+
+Q2. What is the minimum project size?
+₹20,000 (~US $240) for design tasks; no minimum for the subscription plan.
+
+Q3. Can you sign NDAs and comply with ISO 9001?
+We sign mutual NDAs by default. ISO 9001 audit is in progress; target certification Q1 2026.
+
+Q4. Do you offer white-label services to agencies?
+Yes, with non-solicitation agreements and hidden branding.
+
+Q5. How do you handle IP for CAD projects?
+All intellectual property transfers to the client upon final payment.
+
+14. Contact & Channels
+Website: uminber.com
+
+Email: hello@uminber.com
+
+Phone / WhatsApp: +91 90 999 12345
+
+LinkedIn: linkedin.com/company/uminber
+
+Office: 2-B, Pearl Corporate Park, S.G. Highway, Ahmedabad 380015, India
+
+Support hours: Mon-Sat 9 am – 7 pm IST
+
+15. Quick Reference Cheat-Sheet
+Founded 2021 - Ahmedabad - 2–10 staff
+
+One-stop design + software + hardware studio
+
+Signature offerings: web/app dev - CAD/CAM - EV retrofit kits
+
+Starter website+branding: ₹34,999
+
+EV kit dealer price starts ₹45,000
+
+Engagements: fixed, sprint, subscription
+
+Core edge: multidisciplinary + affordable + fast
+
+End of document
+"""

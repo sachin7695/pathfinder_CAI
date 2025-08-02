@@ -1,15 +1,14 @@
-#
-# Copyright (c) 2024–2025, Daily
-#
-# SPDX-License-Identifier: BSD 2-Clause License
-#
-
 import argparse
 import os
 from datetime import datetime
 from typing import Optional, List
 from dotenv import load_dotenv
 from loguru import logger
+from sentence_transformers import SentenceTransformer
+import faiss
+import numpy as np
+import os
+from groq import Groq
 
 from pipecat.adapters.schemas.function_schema import FunctionSchema
 from pipecat.adapters.schemas.tools_schema import ToolsSchema
@@ -27,6 +26,8 @@ from pipecat.services.openai_realtime_beta import (
     SemanticTurnDetection,
     SessionProperties,
 )
+from groq import AsyncGroq
+
 from pipecat.frames.frames import TranscriptionMessage, TranscriptionUpdateFrame
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.frames.frames import TranscriptionMessage
@@ -44,25 +45,109 @@ def load_knowledge_base(path: str) -> str:
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
-kb_path = os.path.join(os.path.dirname(__file__), "kb.txt")
-kb_text = load_knowledge_base(kb_path)
+kb_path = os.path.join(os.path.dirname(__file__), "knowledge_base.txt")
+# kb_text = load_knowledge_base(kb_path)
+
+
 
 instruction_path = os.path.join(os.path.dirname(__file__), "prompt.txt")
 instruction_text = load_instrcutions(instruction_path)
 
-async def fetch_weather_from_api(params: FunctionCallParams):
-    temperature = 75 if params.arguments["format"] == "fahrenheit" else 24
-    await params.result_callback(
-        {
-            "conditions": "nice",
-            "temperature": temperature,
-            "format": params.arguments["format"],
-            "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
-        }
+#To implement RAG
+
+
+# Load your model once globally
+EMBED_MODEL = SentenceTransformer("all-MiniLM-L6-v2")  # or your multilingual model
+
+# Load FAISS index and corresponding text chunks
+faiss_index = faiss.read_index("kb.index")
+with open("kb_chunks.txt", encoding="utf-8") as f:
+    KB_CHUNKS = [line.strip() for line in f if line.strip()]
+
+def retrieve_rag_context(question, top_k=3):
+    q_vec = EMBED_MODEL.encode([question])
+    D, I = faiss_index.search(np.array(q_vec).astype(np.float32), top_k)
+    return "\n".join([KB_CHUNKS[i] for i in I[0]])
+
+
+groq_api_key = "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"
+client = AsyncGroq(
+    api_key=groq_api_key  # This is the default and can be omitted
+)
+async def llm_generate(prompt):
+    completion = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.3,
+        max_completion_tokens=512,
+        stream=False,  # set to True if you want streaming in your app
     )
+    # If not streaming, just return the final response:
+    return completion.choices[0].message.content.strip()
+
+
+async def query_knowledge_base(params: FunctionCallParams):
+    question = params.arguments["question"]
+    context = retrieve_rag_context(question, top_k=3)  # implement this as before
+    prompt = f"""उत्तर नीचे दी गई जानकारी के आधार पर दें:
+
+    {context}
+
+    प्रश्न: {question}
+    उत्तर सरल हिंदी में दें:"""
+    answer = await llm_generate(prompt)
+    await params.result_callback({"answer": answer})
 
 
 
+
+
+
+#This is Rulling based retrieval 
+def search_kb(query, kb_path="kb.txt"):
+    # Very basic: match if query words appear in a line or section
+    with open(kb_path, encoding="utf-8") as f:
+        content = f.read().split("\n\n")  # chunked by double newline
+    best = ""
+    score = 0
+    for chunk in content:
+        s = sum(1 for w in query.lower().split() if w in chunk.lower())
+        if s > score:
+            best = chunk.strip()
+            score = s
+    return best or "माफ़ कीजिए, मुझे इसका उत्तर नहीं मिला।"
+
+
+knowledge_base_function = FunctionSchema(
+    name="query_knowledge_base",
+    description="Answer questions about Anganwadi and Poshan Tracker using the official knowledge base.",
+    properties={
+        "question": {
+            "type": "string",
+            "description": "The user's question in Hindi or English."
+        }
+    },
+    required=["question"]
+)
+
+
+
+# async def query_knowledge_base(params: FunctionCallParams):
+#     question = params.arguments["question"]
+#     logger.info(f"Searching KB for: {question}")
+    
+#     # Option 2: Use simple file-based search (better)
+#     answer = search_kb(question, kb_path="kb.txt")
+    
+#     await params.result_callback({"answer": answer})
+
+
+
+tools = ToolsSchema(standard_tools=[
+    knowledge_base_function
+])   
 
 class TranscriptHandler:
     """Handles real-time transcript processing and output.
@@ -142,49 +227,48 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, _: argparse.Namespac
                     )),
         ),
     )
+    
+
+
+    #Openai session properties
 
     session_properties = SessionProperties(
         input_audio_transcription=InputAudioTranscription(),
         turn_detection=SemanticTurnDetection(),
         input_audio_noise_reduction=InputAudioNoiseReduction(type="near_field"),
         # tools=tools,
-        instructions=f"{instruction_text}\n\nKnowledge Base:\n{kb_text}",
+        instructions=f'''
+                 
+                {instruction_text}''',
     )
 
+    #speech to speech models
     llm = OpenAIRealtimeBetaLLMService(
         api_key="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",
         session_properties=session_properties,
         start_audio_paused=False,
     )
 
+    llm.register_function("query_knowledge_base", query_knowledge_base)
+
+    #Transcript handling to log the transcript file
     transcript = TranscriptProcessor()
     transcript_handler = TranscriptHandler(output_file="realtime_openai_transcript.txt")
-    # Create a standard OpenAI LLM context object using the normal messages format. The
-    # OpenAIRealtimeBetaLLMService will convert this internally to messages that the
-    # openai WebSocket API can understand.
+
     context = OpenAILLMContext(
-        [{"role": "user", "content": "Say hello!"}],
-        # [{"role": "user", "content": [{"type": "text", "text": "Say hello!"}]}],
-        #     [
-        #         {
-        #             "role": "user",
-        #             "content": [
-        #                 {"type": "text", "text": "Say"},
-        #                 {"type": "text", "text": "yo what's up!"},
-        #             ],
-        #         }
-        #     ],
+        [{"role": "user", "content": "Conversation started"}],
+        tools
     )
 
     context_aggregator = llm.create_context_aggregator(context)
 
     pipeline = Pipeline(
         [
-            transport.input(),  # Transport user input
+            transport.input(),  
             context_aggregator.user(),
-            llm,  # LLM
+            llm,  
             transcript.user(),
-            transport.output(),  # Transport bot output
+            transport.output(),  
             transcript.assistant(),
             context_aggregator.assistant(),
         ]
@@ -203,14 +287,13 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, _: argparse.Namespac
     @transport.event_handler("on_client_connected")
     async def on_client_connected(transport, client):
         logger.info(f"Client connected")
-        # Kick off the conversation.
+        # Kick off the conversation. to let LLM follow the system instruction
         await task.queue_frames([context_aggregator.user().get_context_frame()])
 
     @transport.event_handler("on_client_disconnected")
     async def on_client_disconnected(transport, client):
         logger.info(f"Client disconnected")
 
-    # Register event handler for transcript updates
     @transcript.event_handler("on_transcript_update")
     async def on_transcript_update(processor, frame):
         # for msg in frame.messages:
@@ -220,9 +303,7 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, _: argparse.Namespac
         #         logger.info(f"Transcript: {line}")
         await transcript_handler.on_transcript_update(processor, frame)
 
-    runner = PipelineRunner(handle_sigint=True)
-
-    await runner.run(task)
+    await PipelineRunner(handle_sigint=True).run(task)
 
 
 if __name__ == "__main__":

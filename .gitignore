@@ -1,11 +1,13 @@
 **__pycache__**
-env
+env/
+node_modules/ 
+twilio/
+daily/
 package.json
 package-lock.json
 requirements.txt
 transcript.txt 
-twilio
-node_modules 
+tarnscript.txt
 client.py 
 connect.js
 plugin_styletts.py

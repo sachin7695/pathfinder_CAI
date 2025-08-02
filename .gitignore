@@ -2,7 +2,7 @@
 env/
 node_modules/ 
 twilio/
-daily/
+daily
 package.json
 package-lock.json
 requirements.txt

@@ -158,7 +158,7 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, _: argparse.Namespac
     )
 
     transcript = TranscriptProcessor()
-    transcript_handler = TranscriptHandler(output_file="transcript_openai.txt")
+    transcript_handler = TranscriptHandler(output_file="realtime_openai_transcript.txt")
     # Create a standard OpenAI LLM context object using the normal messages format. The
     # OpenAIRealtimeBetaLLMService will convert this internally to messages that the
     # openai WebSocket API can understand.

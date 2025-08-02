@@ -32,15 +32,33 @@ async def start_call():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    start_data = websocket.iter_text()
-    await start_data.__anext__()
-    call_data = json.loads(await start_data.__anext__())
-    print(call_data, flush=True)
-    stream_sid = call_data["start"]["streamSid"]
-    call_sid = call_data["start"]["callSid"]
-    print("WebSocket connection accepted")
-    await run_bot(websocket, stream_sid, call_sid, app.state.testing)
+    try:
+        print("WebSocket connection attempt...")
+        await websocket.accept()
+        print("WebSocket connection accepted")
+        
+        start_data = websocket.iter_text()
+        print("Waiting for start message...")
+        await start_data.__anext__()  # First message (usually connection info)
+        
+        print("Waiting for call data...")
+        call_data_raw = await start_data.__anext__()
+        print(f"Raw call data: {call_data_raw}")
+        
+        call_data = json.loads(call_data_raw)
+        print(f"Parsed call data: {call_data}")
+        
+        stream_sid = call_data["start"]["streamSid"]
+        call_sid = call_data["start"]["callSid"]
+        print(f"Stream SID: {stream_sid}, Call SID: {call_sid}")
+        
+        print("Starting bot...")
+        await run_bot(websocket, stream_sid, call_sid, app.state.testing)
+        
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":

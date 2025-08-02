@@ -12,7 +12,9 @@ import sys
 from contextlib import asynccontextmanager
 from inspect import iscoroutinefunction, signature
 from typing import Any, Callable, Dict, Optional, Tuple
-
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+import os
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI
@@ -45,8 +47,37 @@ ice_servers = [
 #     ),
 # ]
 
+
+
+
 # Mount the frontend at /
-app.mount("/client", SmallWebRTCPrebuiltUI)
+# app.mount("/client", SmallWebRTCPrebuiltUI)
+
+@app.get("/api/transcript")
+async def get_transcript():
+    try:
+        with open("realtime_openai_transcript.txt", "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            return {"transcript": lines}
+    except FileNotFoundError:
+        return {"transcript": []}
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_custom_ui():
+    # Read the HTML file
+    html_path = os.path.join(os.path.dirname(__file__), "custom_ui.html")
+    try:
+        with open(html_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return HTMLResponse(
+            content="<h1>Error: custom_ui.html not found</h1><p>Please create the custom_ui.html file in the same directory as run.py</p>",
+            status_code=404
+        )
+
+
+    
+
 
 # Store program arguments
 args: argparse.Namespace = argparse.Namespace()

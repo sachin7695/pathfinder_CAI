@@ -4,8 +4,12 @@ from datetime import datetime
 from typing import Optional, List
 from dotenv import load_dotenv
 from loguru import logger
-from sentence_transformers import SentenceTransformer
-import faiss
+from typing import Set
+import json
+from fastapi import WebSocket
+from collections import deque
+# from sentence_transformers import SentenceTransformer
+# import faiss
 import numpy as np
 import os
 from groq import Groq
@@ -57,48 +61,48 @@ instruction_text = load_instrcutions(instruction_path)
 
 
 # Load your model once globally
-EMBED_MODEL = SentenceTransformer("all-MiniLM-L6-v2")  # or your multilingual model
+# EMBED_MODEL = SentenceTransformer("all-MiniLM-L6-v2")  # or your multilingual model
 
 # Load FAISS index and corresponding text chunks
-faiss_index = faiss.read_index("kb.index")
-with open("kb_chunks.txt", encoding="utf-8") as f:
-    KB_CHUNKS = [line.strip() for line in f if line.strip()]
+# faiss_index = faiss.read_index("kb.index")
+# with open("kb_chunks.txt", encoding="utf-8") as f:
+#     KB_CHUNKS = [line.strip() for line in f if line.strip()]
 
-def retrieve_rag_context(question, top_k=3):
-    q_vec = EMBED_MODEL.encode([question])
-    D, I = faiss_index.search(np.array(q_vec).astype(np.float32), top_k)
-    return "\n".join([KB_CHUNKS[i] for i in I[0]])
+# def retrieve_rag_context(question, top_k=3):
+#     q_vec = EMBED_MODEL.encode([question])
+#     D, I = faiss_index.search(np.array(q_vec).astype(np.float32), top_k)
+#     return "\n".join([KB_CHUNKS[i] for i in I[0]])
 
 
 groq_api_key = "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"
-client = AsyncGroq(
-    api_key=groq_api_key  # This is the default and can be omitted
-)
-async def llm_generate(prompt):
-    completion = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3,
-        max_completion_tokens=512,
-        stream=False,  # set to True if you want streaming in your app
-    )
-    # If not streaming, just return the final response:
-    return completion.choices[0].message.content.strip()
+# client = AsyncGroq(
+#     api_key=groq_api_key  # This is the default and can be omitted
+# )
+# async def llm_generate(prompt):
+#     completion = client.chat.completions.create(
+#         model="llama-3.1-8b-instant",
+#         messages=[
+#             {"role": "user", "content": prompt}
+#         ],
+#         temperature=0.3,
+#         max_completion_tokens=512,
+#         stream=False,  # set to True if you want streaming in your app
+#     )
+#     # If not streaming, just return the final response:
+#     return completion.choices[0].message.content.strip()
 
 
-async def query_knowledge_base(params: FunctionCallParams):
-    question = params.arguments["question"]
-    context = retrieve_rag_context(question, top_k=3)  # implement this as before
-    prompt = f"""उत्तर नीचे दी गई जानकारी के आधार पर दें:
+# async def query_knowledge_base(params: FunctionCallParams):
+#     question = params.arguments["question"]
+#     context = retrieve_rag_context(question, top_k=3)  # implement this as before
+#     prompt = f"""उत्तर नीचे दी गई जानकारी के आधार पर दें:
 
-    {context}
+#     {context}
 
-    प्रश्न: {question}
-    उत्तर सरल हिंदी में दें:"""
-    answer = await llm_generate(prompt)
-    await params.result_callback({"answer": answer})
+#     प्रश्न: {question}
+#     उत्तर सरल हिंदी में दें:"""
+#     answer = await llm_generate(prompt)
+#     await params.result_callback({"answer": answer})
 
 
 
@@ -134,20 +138,63 @@ knowledge_base_function = FunctionSchema(
 
 
 
-# async def query_knowledge_base(params: FunctionCallParams):
-#     question = params.arguments["question"]
-#     logger.info(f"Searching KB for: {question}")
+async def query_knowledge_base(params: FunctionCallParams):
+    question = params.arguments["question"]
+    logger.info(f"Searching KB for: {question}")
     
-#     # Option 2: Use simple file-based search (better)
-#     answer = search_kb(question, kb_path="kb.txt")
+    # Option 2: Use simple file-based search (better)
+    answer = search_kb(question, kb_path="kb.txt")
     
-#     await params.result_callback({"answer": answer})
+    await params.result_callback({"answer": answer})
 
 
 
 tools = ToolsSchema(standard_tools=[
     knowledge_base_function
 ])   
+
+# Add this class before your TranscriptHandler
+class TranscriptBroadcaster:
+    """Manages WebSocket connections for real-time transcript broadcasting"""
+    def __init__(self):
+        self.active_connections: Set[WebSocket] = set()
+        self.transcript_history = deque(maxlen=100)  # Keep last 100 messages
+    
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.add(websocket)
+        logger.info(f"WebSocket connected. Total connections: {len(self.active_connections)}")
+        
+        # Send existing transcript history to new connection
+        for message in self.transcript_history:
+            try:
+                await websocket.send_json(message)
+            except:
+                pass
+    
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.discard(websocket)
+        logger.info(f"WebSocket disconnected. Total connections: {len(self.active_connections)}")
+    
+    async def broadcast_message(self, message: dict):
+        """Broadcast message to all connected clients"""
+        self.transcript_history.append(message)
+        
+        # Send to all connected clients
+        disconnected = set()
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception as e:
+                logger.error(f"Error sending to websocket: {e}")
+                disconnected.add(connection)
+        
+        # Clean up disconnected clients
+        for conn in disconnected:
+            self.disconnect(conn)
+
+# Create a global instance (add this after the TranscriptBroadcaster class)
+transcript_broadcaster = TranscriptBroadcaster()
 
 class TranscriptHandler:
     """Handles real-time transcript processing and output.
@@ -186,6 +233,17 @@ class TranscriptHandler:
         # Always log the message
         logger.info(f"Transcript: {line}")
 
+
+        # Broadcast via WebSocket
+        await transcript_broadcaster.broadcast_message({
+            "type": "transcript",
+            "role": message.role,
+            "content": message.content,
+            "timestamp": message.timestamp or datetime.now().isoformat(),
+        })
+
+
+        
         # Optionally write to file
         if self.output_file:
             try:
@@ -303,7 +361,7 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, _: argparse.Namespac
         #         logger.info(f"Transcript: {line}")
         await transcript_handler.on_transcript_update(processor, frame)
 
-    await PipelineRunner(handle_sigint=True).run(task)
+    await PipelineRunner(handle_sigint=False).run(task)
 
 
 if __name__ == "__main__":

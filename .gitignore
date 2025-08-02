@@ -13,4 +13,4 @@ connect.js
 plugin_styletts.py
 livekit_script.py 
 streamlit_run.py
-plugin_chatterbox
+plugin_chatterbox.py

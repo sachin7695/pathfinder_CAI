@@ -232,7 +232,7 @@ async def main():
             audio_in_enabled=True,
             audio_out_enabled=True,
             audio_in_sample_rate=16000,
-            audio_out_sample_rate=16000,    
+            audio_out_sample_rate=24000,    
             audio_in_filter=NoisereduceFilter(),
             vad_analyzer=SileroVADAnalyzer(params=
                     VADParams(
@@ -248,9 +248,9 @@ async def main():
     )
 
     stt = WhisperSTTService(
-        model=Model.LARGE,
+        model=Model.TINY,
         # model = MLXModel.LARGE_V3_TURBO_Q4,
-        device="cuda",
+        device="cpu",
         compute_type="int8",
         no_speech_prob=0.4,
         language=Language.EN,

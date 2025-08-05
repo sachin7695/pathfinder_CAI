@@ -3,6 +3,7 @@ env/
 node_modules/ 
 twilio/
 daily/
+openai/
 package.json
 package-lock.json
 requirements.txt
@@ -18,6 +19,5 @@ test_ultravox.py
 test_ollama.py 
 ultravox_stt_service.py 
 transcript_livekit.txt 
-openai/
 custom_ui.html
 test.wav

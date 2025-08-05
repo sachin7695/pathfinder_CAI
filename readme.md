@@ -84,7 +84,7 @@ The system consists of several key components:
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd hiring-potter
+   cd pathfinder-CAI
    ```
 
 2. **Create virtual environment**

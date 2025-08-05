@@ -261,7 +261,7 @@ async def evaluate_transcript_with_groq(transcript_text: str) -> tuple[int, str]
         Evaluate the transcript using Groq LLM and return score and feedback
     """
     try:
-        groq_api_key = "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"
+        groq_api_key = "xx"
 
         client = Groq(api_key=groq_api_key)
         

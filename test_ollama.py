@@ -101,7 +101,7 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, args: argparse.Names
         language=Language.EN,
     )
     
-    groq_api_key = "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" #os.getenv("GROQ_API_KEY")
+    groq_api_key = "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" #os.getenv("GROQ_API_KEY")
 
     statement_llm = GroqLLMService(
         api_key=groq_api_key,
@@ -234,20 +234,20 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, args: argparse.Names
     user_idle = UserIdleProcessor(callback=user_idle_notifier, timeout=3.0)
 
     # Initialize WebSocket StyleTTS service
-    websocket_url = os.getenv("TTS_WEBSOCKET_URL", "ws://103.247.19.245:60031/ws/tts")
-    tts = StyleTTSWebSocketService(
-        websocket_url=websocket_url,
-        voice_id=None,
-        language=Language.EN,
-        sample_rate=24000,
-        alpha=0.5,
-        beta=0.5,
-        diffusion_steps=3,
-        embedding_scale=1.1,
-        buffer_threshold_seconds=0.0,
-        sentence_fragment_delimiters="।॥.!?,;:",
-        chunk_size_ms=100,
-    )
+    # websocket_url = os.getenv("TTS_WEBSOCKET_URL", "ws://103.247.19.245:60031/ws/tts")
+    # tts = StyleTTSWebSocketService(
+    #     websocket_url=websocket_url,
+    #     voice_id=None,
+    #     language=Language.EN,
+    #     sample_rate=24000,
+    #     alpha=0.5,
+    #     beta=0.5,
+    #     diffusion_steps=3,
+    #     embedding_scale=1.1,
+    #     buffer_threshold_seconds=0.0,
+    #     sentence_fragment_delimiters="।॥.!?,;:",
+    #     chunk_size_ms=100,
+    # )
 
     tts1 = ChatterboxWebSocketService(
         websocket_url="ws://103.247.19.245:60027",
@@ -278,7 +278,7 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, args: argparse.Names
         # user_idle,
         context_aggregator.user(),
         llm,
-        tts,
+        tts1,
         transport.output(),
         context_aggregator.assistant()
     ])

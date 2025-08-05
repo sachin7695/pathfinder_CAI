@@ -525,6 +525,8 @@ from pipecat.frames.frames import (
     UserStartedSpeakingFrame,
     UserStoppedSpeakingFrame,
 )
+from groq import Groq
+from pipecat.services.openai.tts import OpenAITTSService
 from pipecat.audio.filters.noisereduce_filter import NoisereduceFilter
 from pipecat.processors.transcript_processor import TranscriptProcessor
 from pipecat.frames.frames import TranscriptionMessage, TranscriptionUpdateFrame
@@ -534,14 +536,74 @@ from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
 from pipecat.transports.services.livekit import LiveKitParams, LiveKitTransport
 from pipecat.frames.frames import  TTSSpeakFrame,  LLMFullResponseStartFrame, TextFrame, LLMFullResponseEndFrame
-
+from datetime import datetime
+from pymongo import MongoClient
 # Import our custom Ultravox API STT service
 from ultravox_stt_service1 import UltravoxSTTService #UltravoxAPISTTService, UltravoxWebSocketSTTService
-
 load_dotenv(override=True)
 
 logger.remove(0)
 logger.add(sys.stderr, level="DEBUG")
+
+
+def init_mongodb():
+    try:
+        # MongoDB connection string - replace with your actual connection string
+        mongodb_uri = "mongodb://localhost:27017/"
+        client = MongoClient(mongodb_uri, serverSelectionTimeoutMS=2000)
+        client.admin.command('ping')  # Force connection check
+        db = client['anganwadi']
+        return db
+    except Exception as e:
+        return None
+
+db = init_mongodb()
+pid= 1
+
+
+def save_position_to_db(transcript, score, feedback, participant_name):
+    """Save position data to MongoDB"""
+    global db
+    if db is None:
+        return False, "Database connection not available"
+    
+    try:
+        
+        position_data = {
+            "transcript": transcript,
+            "score": score,
+            "feedback": feedback,
+            "participant_name": participant_name,
+            "updated_at": datetime.now(),
+        }
+        logger.info("########################")
+        logger.info(str(position_data))
+        result = db.call_tracking.insert_one(position_data)
+        return True, str(result.inserted_id)
+    except Exception as e:
+        return False, str(e)
+
+
+
+def load_instrcutions(path:str):
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+instruction_path = os.path.join(os.path.dirname(__file__), "prompt.txt")
+instruction_text = load_instrcutions(instruction_path)
+
+
+def load_knowledge_base(path: str) -> str:
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+    
+
+kb_path = os.path.join(os.path.dirname(__file__), "knowledge_base.txt")
+kb_text = load_knowledge_base(kb_path)
+
+
+
+
+groq_api_key = "xxxx"
 
 
 class TranscriptHandler:
@@ -607,9 +669,9 @@ def generate_livekit_token(api_key: str, api_secret: str, room: str, participant
 async def setup_livekit_connection():
     """Setup LiveKit connection using your credentials"""
     # Your LiveKit credentials
-    api_key = "APIAMrTXLVoxLqe"
-    api_secret = "3pFSQsUzLLeEEWrvO1hJaP4QA97CNeoMEkQA6wWSkuS"
-    room = "my_private_sales_room_2024"
+    api_key = "xx"
+    api_secret = "xx"
+    room = "Anganwadi_Training"
     participant_name = "AI_Assistant"
     
     # Generate token for the AI assistant
@@ -622,7 +684,7 @@ async def setup_livekit_connection():
     )
     
     # LiveKit URL
-    url = os.getenv("LIVEKIT_URL", "wss://telecmi-vuq7uhg6.livekit.cloud")
+    url = os.getenv("LIVEKIT_URL", "wss://xx-vuq7uhg6.livekit.cloud")
     
     logger.info(f"Generated token for AI assistant in room: {room}")
     logger.info(f"Participant name: {participant_name}")
@@ -634,19 +696,88 @@ async def stop(task, room_name) -> None:
         logger.info("Stopping session %s", room_name)
         await task.cancel()
 
+
+async def evaluate_transcript_with_groq(transcript_text: str) -> tuple[int, str]:
+    """
+        Evaluate the transcript using Groq LLM and return score and feedback
+    """
+    try:
+        groq_api_key = "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"
+
+        client = Groq(api_key=groq_api_key)
+        
+        evaluation_prompt = f"""
+        You are an expert evaluator for Anganwadi training sessions. 
+        Evaluate the following conversation transcript and provide:
+        1. A score from 0-100 based on:
+           - Clarity of communication
+           - Knowledge demonstrated
+           - Engagement level
+           - Proper use of Hindi/local language
+           - Understanding of Anganwadi concepts
+        
+        2. Constructive feedback in Hindi for improvement
+        
+        Transcript:
+        {transcript_text}
+        
+        Respond in JSON format:
+        {{
+            "score": <number between 0-100>,
+            "feedback": "<feedback in Hindi>"
+        }}
+        """
+        
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192",  # or your preferred model
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an Anganwadi training evaluator. Respond only in valid JSON format."
+                },
+                {
+                    "role": "user",
+                    "content": evaluation_prompt
+                }
+            ],
+            temperature=0.3,
+            max_tokens=500,
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(completion.choices[0].message.content)
+        score = int(result.get("score", 0))
+        feedback = result.get("feedback", "No feedback provided")
+        
+        return score, feedback
+        
+    except Exception as e:
+        logger.error(f"Error evaluating transcript: {e}")
+        return 0, f"Error during evaluation: {str(e)}"
+    
+
+def read_transcript_file(file_path: str) -> str:
+    """Read the complete transcript from file"""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception as e:
+        logger.error(f"Error reading transcript file: {e}")
+        return ""
+
 async def main():
     (url, token, room_name) = await setup_livekit_connection()
 
     transport = LiveKitTransport(
-        url="wss://telecmi-vuq7uhg6.livekit.cloud",
+        url="wss://xx-vuq7uhg6.livekit.cloud",
         token=token,
-        room_name="my_private_sales_room_2024",
+        room_name=room_name,
         params=LiveKitParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
             audio_in_sample_rate=16000,
             audio_out_sample_rate=16000,    
-            audio_in_filter=NoisereduceFilter(),
+            # audio_in_filter=NoisereduceFilter(),
             vad_analyzer=SileroVADAnalyzer(params=
                     VADParams(
                         start_secs=0.10,   # react ~100 ms after speech onset
@@ -657,7 +788,6 @@ async def main():
                 ),
         ),
     )
-
     # Configure your Ultravox server URL
     ultravox_server_url = "http://103.247.19.245:60032"  # Use HTTP for API endpoints
     
@@ -688,60 +818,27 @@ async def main():
     # )
 
     # Setup Groq LLM (if you want to add LLM capabilities)
-    # groq_api_key = "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"
     
-    # llm = GroqLLMService(
-    #     api_key=groq_api_key,
-    #     model="llama3-8b-8192",
-    # )
-
-    # Setup TTS
-    tts = DeepgramTTSService(
-        api_key='a81490d2493749e737afed5f70bc67767b700149',
-        voice="aura-2-andromeda-en",
-        sample_rate=16000
+    api_key="xx-xx-xx"
+    # tts = OpenAITTSService(api_key=api_key, voice="nova", model = "gpt-4o-mini-tts")
+    tts1 = ChatterboxWebSocketService(
+        websocket_url="ws://103.247.19.245:60027",
+        # voice_prompt_path="/home/user/voice/audio_data/Base-1.wav",  # Optional
+        streaming_mode=True,  # Use native streaming
+        chunk_size=25,
+        exaggeration=0.8,
+        temperature=0.6,
+        cfg_weight=0.2,
+        context_window=20,
+        fade_duration=0.02,
+        reconnect_on_interrupt=False  # Fast interruption without reconnect
     )
 
-    # System messages for the AI assistant
-    messages = [
-        {
-            "role": "system",
-            "content": """
-            You are InterviewBuddy — a warm, friendly, and encouraging AI assistant dedicated to helping users prepare for job interviews. You always communicate in **English**.
 
-            **Your role:**
-            - Engage users in conversations about their upcoming interviews, career goals, and preparation strategies.
-            - Ask thoughtful questions about the roles they're applying for, their strengths, weaknesses, and recent preparation.
-            - Offer support, encouragement, and actionable tips to improve their interview performance.
-            - Help users practice common interview questions, discuss their experiences, and boost their confidence.
-
-            **Guidelines for all responses:**
-            - Respond only in English.
-            - Use a conversational, simple, and motivating tone.
-            - Keep answers and questions short — 2-3 sentences per turn.
-            - Always prompt the user to share more about their interview prep, recent experiences, or concerns.
-            - If the user goes off-topic, gently guide the conversation back to interview preparation and professional growth.
-            - When someone first speaks to you, greet them warmly and introduce yourself as InterviewBuddy.
-
-            **Examples:**
-            - Hi there! I'm InterviewBuddy, your AI interview assistant. What role are you preparing for right now?
-            - What's your biggest strength, and how do you usually showcase it in interviews?
-            - Can you tell me about a recent interview experience you had?
-            - Great progress! Would you like to practice some common interview questions together?
-
-            Be supportive, practical, and always eager to help the user succeed in their job search journey!
-            """
-        },
-    ]
-
-    # Setup context and aggregators
-    # context = OpenAILLMContext(messages)
-    # context_aggregator = llm.create_context_aggregator(context)
     
     # Setup transcript processing
     transcript = TranscriptProcessor()
-    transcript_handler = TranscriptHandler(output_file="transcript.txt")
-
+    transcript_handler = TranscriptHandler(output_file="transcript_ultravox.txt")
     # Create the pipeline task
     task = PipelineTask(
         Pipeline(
@@ -783,14 +880,18 @@ async def main():
         await asyncio.sleep(0.2)
         
         # Test the Ultravox connection by sending a greeting
-        greeting_text = "Hello! I'm InterviewBuddy, your AI interview assistant. What role are you preparing for today?"
+        greeting_text = """
+        नमस्ते! मैं आपकी एआई सहायिका हूँ, जो आपकी आंगनवाड़ी ट्रेनिंग में मदद करेगी। 
+        सबसे पहले, क्या मैं आपका नाम जान सकती हूँ? आप किस गाँव या इलाके में काम करती हैं? 
+        और आपकी भूमिका क्या है—आंगनवाड़ी कार्यकर्ता या सहायिका?
+        """
 
         await task.queue_frames([
             LLMFullResponseStartFrame(),
             LLMTextFrame(text=greeting_text),
             LLMFullResponseEndFrame()
         ])
-        context = OpenAILLMContext(messages)
+        context = OpenAILLMContext()
         # Add to context
         context.add_message({
             "role": "assistant",
@@ -807,15 +908,73 @@ async def main():
         await asyncio.sleep(3)
         await stop_session()
 
+
+
+
     @transport.event_handler("on_participant_left")
     async def on_participant_left(transport, participant_id, reason):
         logger.info(f"Participant {participant_id} left the room")
-        await stop_session()
+        # Read the transcript
+        transcript_content = read_transcript_file("transcript_ultravox.txt")
+        
+        if transcript_content:
+            # Evaluate the transcript
+            score, feedback = await evaluate_transcript_with_groq(
+                transcript_content, 
+            )
+            # Save to database
+            success, result = save_position_to_db(
+                transcript=transcript_content,
+                score=score,
+                feedback=feedback,
+                participant_name=participant_id
+            )
+            
+            if success:
+                logger.info(f"Successfully saved evaluation to DB: {result}")
+            else:
+                logger.error(f"Failed to save to DB: {result}")
+            await stop_session()
+
+        
 
     @transport.event_handler("on_disconnected")
     async def on_disconnected(transport):
+        global pid
         logger.info("Transport disconnected")
+        # Get participant ID if available
+        try:
+            
+            participant_id = getattr(transport, 'participant_id', 'Participant')
+        except Exception as e:
+            participant_id = "participate_"+str(pid)
+            pid+=1 
+        
+        # Read the transcript
+        transcript_content = read_transcript_file("transcript_ultravox.txt")
+        
+        if transcript_content:
+            # Evaluate the transcript
+            score, feedback = await evaluate_transcript_with_groq(
+                transcript_content, 
+            )
+            
+            # Save to database
+            success, result = save_position_to_db(
+                transcript=transcript_content,
+                score=score,
+                feedback=feedback,
+                participant_name=participant_id
+            )
+            
+            if success:
+                logger.info(f"Successfully saved evaluation to DB: {result}")
+            else:
+                logger.error(f"Failed to save to DB: {result}")
         await stop_session()
+
+
+
 
     # Log startup information
     logger.info("🚀 Starting InterviewBuddy AI Assistant")

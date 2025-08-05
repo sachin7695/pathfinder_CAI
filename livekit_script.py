@@ -93,6 +93,10 @@ from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
 # from pipecat.runner.livekit import configure
 from pipecat.transports.services.livekit import LiveKitParams, LiveKitTransport
 from pipecat.frames.frames import  TTSSpeakFrame,  LLMFullResponseStartFrame, TextFrame, LLMFullResponseEndFrame
+from pipecat.services.openai.base_llm import BaseOpenAILLMService
+from pipecat.services.openai.tts import OpenAITTSService
+from pipecat.services.openai.llm import OpenAILLMService
+
 load_dotenv(override=True)
 
 logger.remove(0)
@@ -191,8 +195,8 @@ async def setup_livekit_connection():
     # Your LiveKit credentials (same as your client-side code)
     api_key = "APIAMrTXLVoxLqe"
     api_secret = "3pFSQsUzLLeEEWrvO1hJaP4QA97CNeoMEkQA6wWSkuS"
-    room = "my_private_sales_room_2024"
-    participant_name = "AI_Assistant"  # Different from client participant
+    room = "Anganwadi_Training"
+    participant_name = "AI_Assistant"
     
     # You can also load these from environment variables for security
     # api_key = os.getenv("LIVEKIT_API_KEY", "APIAMrTXLVoxLqe")
@@ -227,19 +231,19 @@ async def main():
     transport = LiveKitTransport(
         url="wss://telecmi-vuq7uhg6.livekit.cloud",
         token=token,
-        room_name="my_private_sales_room_2024",
+        room_name="Anganwadi_Training",
         params=LiveKitParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
             audio_in_sample_rate=16000,
             audio_out_sample_rate=24000,    
-            audio_in_filter=NoisereduceFilter(),
+            # audio_in_filter=NoisereduceFilter(),
             vad_analyzer=SileroVADAnalyzer(params=
                     VADParams(
                         start_secs=0.10,   # react ~100 ms after speech onset
                         # stop_secs=0.25,    # cut off quickly after 250 ms silence
                         # min_volume=0.3,    # make it less strict
-                        confidence=0.9,
+                        confidence=0.5,
                         stop_secs=0.25,
                         min_volume=0.6,
                     )
@@ -247,78 +251,76 @@ async def main():
         ),
     )
 
-    stt = WhisperSTTService(
-        model=Model.TINY,
-        # model = MLXModel.LARGE_V3_TURBO_Q4,
-        device="cpu",
-        compute_type="int8",
-        no_speech_prob=0.4,
-        language=Language.EN,
-    )
-    
-    groq_api_key = "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" #os.getenv("GROQ_API_KEY")
-
-    # stt = GroqSTTService(api_key=groq_api_key)
-    llm = GroqLLMService(
-        api_key=groq_api_key,
-        # model= "meta-llama/llama-4-maverick-17b-128e-instruct" #"llama3-8b-8192",
-        model="llama3-8b-8192",
-    )
-
-    # tts = ChatterboxWebSocketService(
-    #     websocket_url="ws://103.247.19.245:60027",
-    #     # voice_prompt_path="/home/user/voice/audio_data/Base-1.wav",  # Optional
-    #     streaming_mode=True,  # Use native streaming
-    #     chunk_size=60,
-    #     exaggeration=0.8,
-    #     temperature=0.6,
-    #     cfg_weight=0.2,
-    #     context_window=30,
-    #     fade_duration=0.02,
-    #     reconnect_on_interrupt=False  # Fast interruption without reconnect
+    # stt = WhisperSTTService(
+    #     model=Model.TINY,
+    #     # model = MLXModel.LARGE_V3_TURBO_Q4,
+    #     device="cpu",
+    #     compute_type="int8",
+    #     no_speech_prob=0.4,
+    #     language=Language.EN,
     # )
-    tts = DeepgramTTSService(
-            api_key='a81490d2493749e737afed5f70bc67767b700149',
-            voice="aura-2-andromeda-en",
-            sample_rate=16000
-        )
+    groq_api_key = "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" #os.getenv("GROQ_API_KEY")
+    stt = GroqSTTService(api_key = groq_api_key)
 
+
+
+    # Method 3: Setting multiple parameters
+    comprehensive_params = BaseOpenAILLMService.InputParams(
+        max_completion_tokens=1024,
+        temperature=0.0,
+        top_p=0.95,
+        frequency_penalty=0.1,
+        presence_penalty=0.1,
+        seed=42  # For deterministic outputs
+    )
+    # stt = GroqSTTService(api_key=groq_api_key)
+    # llm = GroqLLMService(
+    #     api_key=groq_api_key,
+    #     # model= "meta-llama/llama-4-maverick-17b-128e-instruct" #"llama3-8b-8192",
+    #     model="llama3-8b-8192",
+    #     params = comprehensive_params
+    # )
+
+
+    tts = ChatterboxWebSocketService(
+        websocket_url="ws://103.247.19.245:60027",
+        # voice_prompt_path="/home/user/voice/audio_data/Base-1.wav",  # Optional
+        streaming_mode=True,  # Use native streaming
+        chunk_size=25,
+        exaggeration=0.3,
+        temperature=0.6,
+        cfg_weight=0.3,
+        context_window=100,
+        fade_duration=0.05,
+        reconnect_on_interrupt=False  # Fast interruption without reconnect
+    )
+    # tts = DeepgramTTSService(
+    #         api_key='a81490d2493749e737afed5f70bc67767b700149',
+    #         voice="aura-2-andromeda-en",
+    #         sample_rate=16000
+    #     )
+
+
+    api_key="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"
+    # tts = OpenAITTSService(api_key=api_key, voice="nova", model = "gpt-4o-mini-tts")
+    llm = OpenAILLMService(model = "gpt-4.1", api_key=api_key)
     messages = [
         {
             "role": "system",
-            "content": """
-            You are InterviewBuddy — a warm, friendly, and encouraging AI assistant dedicated to helping users prepare for job interviews. You always communicate in **English**.
-
-            **Your role:**
-            - Engage users in conversations about their upcoming interviews, career goals, and preparation strategies.
-            - Ask thoughtful questions about the roles they’re applying for, their strengths, weaknesses, and recent preparation.
-            - Offer support, encouragement, and actionable tips to improve their interview performance.
-            - Help users practice common interview questions, discuss their experiences, and boost their confidence.
-
-            **Guidelines for all responses:**
-            - Respond only in English.
-            - Use a conversational, simple, and motivating tone.
-            - Keep answers and questions short — 2-3 sentences per turn.
-            - Always prompt the user to share more about their interview prep, recent experiences, or concerns.
-            - If the user goes off-topic, gently guide the conversation back to interview preparation and professional growth.
-            - When someone first speaks to you, greet them warmly and introduce yourself as InterviewBuddy.
-
-            **Examples:**
-            - Hi there! I’m InterviewBuddy, your AI interview assistant. What role are you preparing for right now?
-            - What’s your biggest strength, and how do you usually showcase it in interviews?
-            - Can you tell me about a recent interview experience you had?
-            - Great progress! Would you like to practice some common interview questions together?
-
-            Be supportive, practical, and always eager to help the user succeed in their job search journey!
-            """
-        },
+            "content": (
+                "You are a grammar correction engine.\n"
+                "Your task is to take a raw spoken English sentence and return only its corrected, fluent version.\n"
+                "Do not explain. Do not prefix. Do not add quotes. Just return the clean, corrected sentence."
+                )
+        }
     ]
+
 
 
     context = OpenAILLMContext(messages)
     context_aggregator = llm.create_context_aggregator(context)
     transcript = TranscriptProcessor()
-    transcript_handler = TranscriptHandler(output_file="transcript.txt")
+    transcript_handler = TranscriptHandler(output_file="transcript_livekit.txt")
 
 
 

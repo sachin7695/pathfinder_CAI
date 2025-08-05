@@ -43,7 +43,7 @@ class UltravoxSTTService(AIService):
         *,
         api_base_url: str = "http://localhost:8000",
         temperature: float = 0.7,
-        max_tokens: int = 500,
+        max_tokens: int = 250,
         timeout: float = 30.0,
         instruct: str = "You are a helpful assistant.",
         **kwargs,

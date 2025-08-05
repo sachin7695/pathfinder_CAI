@@ -74,7 +74,6 @@ instruction_text = load_instrcutions(instruction_path)
 #     return "\n".join([KB_CHUNKS[i] for i in I[0]])
 
 
-groq_api_key = "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"
 # client = AsyncGroq(
 #     api_key=groq_api_key  # This is the default and can be omitted
 # )
@@ -302,7 +301,7 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, _: argparse.Namespac
 
     #speech to speech models
     llm = OpenAIRealtimeBetaLLMService(
-        api_key="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",
+        api_key="xx-xx-xx-xx",
         session_properties=session_properties,
         start_audio_paused=False,
     )

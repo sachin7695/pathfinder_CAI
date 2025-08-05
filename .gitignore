@@ -2,7 +2,7 @@
 env/
 node_modules/ 
 twilio/
-daily
+daily/
 package.json
 package-lock.json
 requirements.txt
@@ -13,4 +13,11 @@ connect.js
 plugin_styletts.py
 livekit_script.py 
 streamlit_run.py
-plugin_chatterbox.py
+transcript.txt 
+test_ultravox.py 
+test_ollama.py 
+ultravox_stt_service.py 
+transcript_livekit.txt 
+openai/
+custom_ui.html
+test.wav
